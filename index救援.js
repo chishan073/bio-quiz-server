@@ -56,6 +56,37 @@ app.get('/api/questions', (req, res) => {
     });
   });
   
+  app.post('/api/answer', (req, res) => {
+    const { user_id, question_id, selected_option } = req.body;
+  
+    if (!user_id || !question_id || !selected_option) {
+      return res.status(400).json({ error: 'Missing parameters' });
+    }
+  
+    db.query(
+      'SELECT correct_option, explanation FROM questions WHERE id = ?',
+      [question_id],
+      (err, results) => {
+        if (err) return res.status(500).send(err);
+  
+        if (results.length === 0) {
+          return res.status(404).json({ error: 'Question not found' });
+        }
+  
+        const { correct_option, explanation } = results[0];
+        const is_correct = selected_option === correct_option;
+  
+        db.query(
+          'INSERT INTO user_answers (user_id, question_id, selected_option, is_correct) VALUES (?, ?, ?, ?)',
+          [user_id, question_id, selected_option, is_correct],
+          err2 => {
+            if (err2) return res.status(500).send(err2);
+            res.json({ correct_option, is_correct, explanation });
+          }
+        );
+      }
+    );
+  });
   
   
   
